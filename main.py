@@ -119,7 +119,7 @@ def do_the_magic():
 
 
 def main():
-    # # Create a web session
+    # Create a web session
     # log("Creating a new hackthis.co.uk web session...")
     # web_session = get_new_hackthis_web_session()
     #
@@ -127,7 +127,7 @@ def main():
     # log("Cleaning up old files...")
     # make_clean()
     #
-    # # Fetch a new captcha
+    # Fetch a new captcha
     # log("Download new captcha...")
     # get_captcha(web_session, "guessdata/captcha.png")
 
@@ -135,13 +135,13 @@ def main():
     log("Cleaning up image...")
     ImageFilter.clean("guessdata/captcha.png", "guessdata/captcha_clean.png")
 
-    # Split every char of the image
-    log("Split image....")
-    ImageSpliter.ImgSplit("guessdata/captcha_clean.png")
-
-    # Recognize chars
-    log("Solving image captcha...")
-    solution = do_the_magic()
+    # # Split every char of the image
+    # log("Split image....")
+    # ImageSpliter.ImgSplit("guessdata/captcha_clean.png")
+    #
+    # # Recognize chars
+    # log("Solving image captcha...")
+    # solution = do_the_magic()
 
     log("Submitting solution: '%s' " % (solution))
     # response = web_session.post("https://www.hackthis.co.uk/levels/captcha/4", data={"answer": solution.replace(" ", "") }, timeout=20).content
