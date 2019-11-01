@@ -1,14 +1,14 @@
 #!/usr/bin/python3
 from PIL import ImageFile
 import sys
+import PIL
+import math
+
+PIL.Image.MAX_IMAGE_PIXELS = 5294770690
 
 WHITE = (255, 255, 255)
 BLACK = (0, 0, 0)
 BACKG = (30, 30, 30)
-GREEN = (0, 128, 0)
-
-THRESHOLD = 150
-
 
 def distance(pixel, color):
     distance = 0
@@ -17,12 +17,15 @@ def distance(pixel, color):
     return distance
 
 
-def is_green(pixel):
-    distance_to_green = distance(pixel, GREEN)
-    if distance_to_green < THRESHOLD:
+def prencentage(pixel, color):
+    p=(distance(pixel, color))/math.sqrt((255)^2+(255)^2+(255)^2)
+    return p
+
+def is_black(pixel):
+    distance_to_black = distance(pixel, BACKG)
+    if distance_to_black < 6500:
         return True
     return False
-
 
 def clean(imgPath, imgOutput):
     with open(imgPath, "rb") as fd:
@@ -40,7 +43,7 @@ def clean(imgPath, imgOutput):
 
         for x in range(0, w):
             for y in range(0, h):
-                if is_green(image.getpixel((x, y))):
+                if not is_black(image.getpixel((x, y))):
                     img2.putpixel((x, y), BLACK)
                     x_start = min(x, x_start)
                     y_start = min(y, y_start)
@@ -50,6 +53,5 @@ def clean(imgPath, imgOutput):
                     img2.putpixel((x, y), WHITE)
 
         # print("Box is {}/{} to {}/{}".format(x_start, y_start, x_end, y_end))
-
-        img2 = img2.crop(box=(x_start, y_start, x_end+1, y_end))
+        img2 = img2.crop(box=(x_start, y_start, x_end+1, y_end+1))
         img2.save(imgOutput)

@@ -9,24 +9,25 @@ import glob
 from natsort import natsorted
 import imagehash
 from PIL import Image
+from PIL import ImageFile
 
 import Creds
 import ImageFilter
 import ImageSpliter
 
 smileys = [
-    (":D", "happy"),
-    (":)", "smiley"),
-    (":p", "tongue"),
-    (":(", "sad"),
-    (";)", "wink"),
-    ("B)", "cool"),
-    (":@", "angry"),
-    (":o", "shocked"),
-    (":s", "confused"),
-    (":|", "neutral"),
-    (":/", "wondering"),
-    ("<3", "heart")
+    (":D", 2000),
+    (":)", 2027),
+    (":p", 2369),
+    (":(", 1474),
+    (";)", 800),
+    ("B)", 2700),
+    (":@", 2633),
+    (":o", 1758),
+    (":s", 2250),
+    (":|", 1859),
+    (":/", 2061),
+    ("<3", 3600)
 ]
 
 
@@ -80,68 +81,90 @@ def get_user_solution(captchaName):
         else:
             return data.rstrip("\n\r")
 
-def do_the_magic():
-    dhash_digests = {}
-    phash_digests = {}
-    for letter_image in glob.glob("traindata/*.png"):
-        dhash_digest = imagehash.dhash(Image.open(letter_image))
-        phash_digest = imagehash.phash(Image.open(letter_image))
-        letter = filename_to_smiley(os.path.basename(letter_image))
-        dhash_digests[dhash_digest] = letter
-        phash_digests[phash_digest] = letter
 
+def get_pixels_of_color(imagePath, color):
+	# https://stackoverflow.com/questions/27868250/python-find-out-how-much-of-an-image-is-black
+    with open(imagePath, "rb") as fd:
+        p = ImageFile.Parser()
+        p.feed(fd.read())
+        image = p.close()
+        w, h = image.size
+
+        pixels_of_color = 0
+        for x in range(0, w):
+            for y in range(0, h):
+                if image.getpixel((x, y)) == color:
+                    pixels_of_color += 1
+        return pixels_of_color
+
+
+def zoom_in(imgIn, imgOut):
+	basewidth = 2000
+	img = Image.open(imgIn)
+	wpercent = (basewidth/float(img.size[0]))
+	hsize = int((float(img.size[1])*float(wpercent)))
+	img = img.resize((basewidth,hsize), Image.ANTIALIAS)
+	img.save(imgOut) 
+
+
+def do_the_magic():
     solution = ""
 
     for letter_image in natsorted(glob.glob("guessdata/*.png")):
         if "captcha" in letter_image:
             continue
+        black_pixels = get_pixels_of_color(letter_image, ImageFilter.BLACK)
+        print("%s -> %d" % (letter_image, black_pixels) )
 
-        min_distance = 0xFFFF
-        letter = "?"
+        # Look for the emoji with colest number of pixels to current letter image
+        min_diff = 100
+        closest_smiley = ""
+        for smiley in smileys:
+        	diff = 0
+        	# Look for a closer smiley
+        	if black_pixels > smiley[1]:
+        		diff = black_pixels - smiley[1]
+        	else:
+        		diff = smiley[1] - black_pixels
+        	
+        	if diff < min_diff:
+        		min_diff = diff
+        		closest_smiley = smiley[0]
+       	solution += (closest_smiley + ' ')
 
-        img = Image.open(letter_image)
-        digest = imagehash.dhash(img)
-        for known_digest in dhash_digests:
-            distance = digest - known_digest
-            if distance < min_distance:
-                min_distance = distance
-                letter = dhash_digests[known_digest]
+       	# print("%s -> %d closer to %s" % (letter_image, black_pixels, closest_smiley))
 
-        digest = imagehash.phash(img)
-        for known_digest in phash_digests:
-            distance = digest - known_digest
-            if distance < min_distance:
-                min_distance = distance
-                letter = phash_digests[known_digest]
-
-        solution += (letter + " ")
     return solution
 
 
 def main():
     # Create a web session
-    # log("Creating a new hackthis.co.uk web session...")
-    # web_session = get_new_hackthis_web_session()
-    #
-    # # Clean guessdata directory
-    # log("Cleaning up old files...")
-    # make_clean()
-    #
+    log("Creating a new hackthis.co.uk web session...")
+    web_session = get_new_hackthis_web_session()
+    
+    # Clean guessdata directory
+    log("Cleaning up old files...")
+    make_clean()
+    
     # Fetch a new captcha
-    # log("Download new captcha...")
-    # get_captcha(web_session, "guessdata/captcha.png")
+    log("Download new captcha...")
+    get_captcha(web_session, "guessdata/captcha.png")
+
+    # Zoom in a pucture
+    log("Zooming into image...")
+    zoom_in("guessdata/captcha.png", "guessdata/captcha_zoomed.png")
 
     # Remove black background from image
     log("Cleaning up image...")
-    ImageFilter.clean("guessdata/captcha.png", "guessdata/captcha_clean.png")
+    ImageFilter.clean("guessdata/captcha_zoomed.png", "guessdata/captcha_clean.png")
 
-    # # Split every char of the image
-    # log("Split image....")
-    # ImageSpliter.ImgSplit("guessdata/captcha_clean.png")
-    #
+    # Split every char of the image
+    log("Split image....")
+    ImageSpliter.ImgSplit("guessdata/captcha_clean.png")
+    
     # # Recognize chars
     # log("Solving image captcha...")
-    # solution = do_the_magic()
+    solution = do_the_magic()
 
     log("Submitting solution: '%s' " % (solution))
     # response = web_session.post("https://www.hackthis.co.uk/levels/captcha/4", data={"answer": solution.replace(" ", "") }, timeout=20).content

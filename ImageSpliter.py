@@ -50,7 +50,7 @@ def ImgSplit(imgPath):
                         y_start = min(y, y_start)
                         y_end = max(y, y_end)
 
-            img2 = image.crop(box=(range_start, y_start, min(range_end + 1, w), y_end))
+            img2 = image.crop(box=(range_start, y_start, min(range_end + 1, w), y_end + 1))
             j = 0
             while True:
                 filename = outputPath + "/{}.png".format(i)
